@@ -15,7 +15,7 @@ export default {
     // Logged
     loggedUser ({commit}, payload) {
       // Send mutation new uid used helped Class
-      commit('setUser', new User(payload.uid, payload.displayName, payload.photoURL))
+      commit('setUser', new User(payload.uid, payload.displayName, payload.photoURL, payload.email))
     },
     // Logout
     async logoutUser ({commit}) {

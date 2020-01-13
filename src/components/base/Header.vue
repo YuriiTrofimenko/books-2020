@@ -25,10 +25,9 @@
               vs-dropdown-item(disabled='')
                 |{{userData.name}}
               vs-dropdown-item(disabled='')
-                |{{userData.mail}}
+                |{{userData.email}}
               vs-dropdown-item(divider='')
                 span.navbar-link(@click='signOut') SignOut
-          
 </template>
 <script>
 import firebase from 'firebase'
