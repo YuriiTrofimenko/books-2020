@@ -1,12 +1,16 @@
 <template lang="pug">
   div
-    vs-prompt(@cancel='cancel' @accept='acceptAlert' @close='close' :is-valid="validTitle && validType" :active.sync='activeAddBookPrompt')
+    vs-prompt(@cancel='cancel' @accept='acceptAlert' @close='close' :is-valid="validTitle && validType && validAuthor && validDesription && validCountry && validCity" :active.sync='activeAddBookPrompt')
       div
         | Book Description
-        vs-input(placeholder='title' v-model='currentBook.title')
+        vs-input(placeholder='title' label='название книги' v-model='currentBook.title')
         vs-select(label='type' v-model='currentBook.type')
           vs-select-item(:key='index' :value='typeOption.value' :text='typeOption.text' v-for='typeOption, index in typeOptions')
-        vs-alert(:active='!validTitle || !validType' color='danger' icon='new_releases')
+        vs-input(placeholder='author' label='автор' v-model='currentBook.author')
+        vs-input(placeholder='country' label='страна' v-model='currentBook.country')
+        vs-input(placeholder='city' :disabled='!validCountry' label='город' v-model='currentBook.city')
+        vs-textarea(label='описание книги' v-model='currentBook.description' counter='100' :counter-danger.sync='counterDanger')
+        vs-alert(:active='!validTitle || !validType || !validAuthor || !validCountry || !validCity' color='danger' icon='new_releases')
           | Все поля должны быть заполнены
     vs-row
       vs-col(vs-type='flex' vs-justify='center' vs-align='left' vs-w='6')
@@ -44,7 +48,12 @@ export default {
       activeAddBookPrompt: false,
       currentBook: {
         title: '',
-        type: null
+        type: null,
+        author: '',
+        description: '',
+        counterDanger: false,
+        country: '',
+        city: ''
       },
       typeOptions: [
         {text: 'дарю', value: 1},
@@ -62,15 +71,28 @@ export default {
     },
     validType () {
       return (this.currentBook.type !== null)
+    },
+    validAuthor () {
+      return (this.currentBook.author.length > 0)
+    },
+    validDesription () {
+      return (this.currentBook.description.length <= 100)
+    },
+    validCountry () {
+      return (this.currentBook.country.length > 0)
+    },
+    validCity () {
+      return (this.currentBook.city.length > 0)
     }
   },
   methods: {
     acceptAlert (color) {
       this.$store.dispatch('newBook', {
         title: this.currentBook.title,
-        author: '',
-        description: '',
-        city: '',
+        author: this.currentBook.author,
+        description: this.currentBook.description,
+        country: this.currentBook.country,
+        city: this.currentBook.city,
         type: this.currentBook.type,
         image: '',
         active: ''
@@ -99,6 +121,8 @@ export default {
     cancel () {
       this.currentBook.title = ''
       this.currentBook.type = null
+      this.currentBook.author = ''
+      this.currentBook.description = ''
     }
   }
 }
