@@ -10,12 +10,14 @@ import 'firebase/auth'
 import 'firebase/database'
 import 'firebase/analytics'
 import {firebaseConfig} from './helpers/firebaseConfig'
+import ImageUploader from 'vue-image-upload-resize'
 
 import 'vuesax/dist/vuesax.css'
 import 'material-icons/iconfont/material-icons.css'
 
 Vue.config.productionTip = false
 Vue.use(Vuesax)
+Vue.use(ImageUploader)
 
 Vue.prototype.$lastUser = null
 

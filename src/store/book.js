@@ -110,19 +110,18 @@ export default ({
           const booksArray = []
           // Get task key (id)
           Object.keys(books).forEach(key => {
-            const n = books[key]
+            const b = books[key]
             // console.log(n)
             booksArray.push(
               new Book(
-                n.title,
-                n.type,
-                n.description,
-                n.access,
-                n.status,
-                n.dependenciesSatisfied,
-                n.radius,
-                n.left,
-                n.top,
+                b.title,
+                b.author,
+                b.description,
+                b.country,
+                b.city,
+                b.type,
+                b.image,
+                b.active,
                 // n.user,
                 key
               )
@@ -161,19 +160,18 @@ export default ({
           const booksArray = []
           // Get task key (id)
           Object.keys(books).forEach(key => {
-            const n = books[key]
+            const b = books[key]
             // console.log(n)
             booksArray.push(
               new Book(
-                n.title,
-                n.type,
-                n.description,
-                n.access,
-                n.status,
-                n.dependenciesSatisfied,
-                n.radius,
-                n.left,
-                n.top,
+                b.title,
+                b.author,
+                b.description,
+                b.country,
+                b.city,
+                b.type,
+                b.image,
+                b.active,
                 // n.user,
                 key
               )

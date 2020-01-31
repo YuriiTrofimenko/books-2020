@@ -9,7 +9,15 @@
         vs-input(placeholder='author' label='автор' v-model='currentBook.author')
         vs-input(placeholder='country' label='страна' v-model='currentBook.country')
         vs-input(placeholder='city' :disabled='!validCountry' label='город' v-model='currentBook.city')
-        vs-textarea(label='описание книги' v-model='currentBook.description' counter='100' :counter-danger.sync='counterDanger')
+        vs-textarea(label='описание книги' v-model='currentBook.description' counter='100' :counter-danger.sync='currentBook.counterDanger')
+        .preview
+          vue-cropper(ref='cropper' :aspect-ratio='1' :viewMode='3' :src='selectedImage' preview='.preview')
+        image-uploader(:debug='1' :maxWidth='300' :maxHeight='300' :quality='0.9' :autoRotate='true' :preview='false' :className="['fileinput', { 'fileinput--loaded' : selectedImage }]" :capture='false' accept='image/*' doNotResize="['gif', 'svg']" @input='setImage' @onUpload='startImageResize' @onComplete='endImageResize')
+          label(for='fileInput' slot='upload-label')
+            figure
+              svg(xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewbox='0 0 32 32')
+                path.path1(d='M9.5 19c0 3.59 2.91 6.5 6.5 6.5s6.5-2.91 6.5-6.5-2.91-6.5-6.5-6.5-6.5 2.91-6.5 6.5zM30 8h-7c-0.5-2-1-4-3-4h-8c-2 0-2.5 2-3 4h-7c-1.1 0-2 0.9-2 2v18c0 1.1 0.9 2 2 2h28c1.1 0 2-0.9 2-2v-18c0-1.1-0.9-2-2-2zM16 27.875c-4.902 0-8.875-3.973-8.875-8.875s3.973-8.875 8.875-8.875c4.902 0 8.875 3.973 8.875 8.875s-3.973 8.875-8.875 8.875zM30 14h-4v-2h4v2z')
+            span.upload-caption {{ selectedImage ? &apos;Replace&apos; : &apos;Upload&apos; }}
         vs-alert(:active='!validTitle || !validType || !validAuthor || !validCountry || !validCity' color='danger' icon='new_releases')
           | Все поля должны быть заполнены
     vs-row
@@ -29,10 +37,11 @@
                   h3
                     | {{book.title}}
                 div(slot='media')
-                  img(src='../assets/logo.png')
+                  img(v-if='book.image' :src='book.image')
+                  img(v-if='!book.image' src='../assets/logo.png')
                 div
                   span
-                    | Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                    | {{book.description}}
                 div(slot='footer')
                   vs-row(vs-justify='flex-end')
                     vs-button(type='gradient' color='danger' icon='favorite')
@@ -41,8 +50,11 @@
 </template>
 
 <script>
+import VueCropper from 'vue-cropperjs'
+import 'cropperjs/dist/cropper.css'
 export default {
   name: 'MyOffers',
+  components: { VueCropper },
   data () {
     return {
       activeAddBookPrompt: false,
@@ -53,7 +65,8 @@ export default {
         description: '',
         counterDanger: false,
         country: '',
-        city: ''
+        city: '',
+        image: ''
       },
       typeOptions: [
         {text: 'дарю', value: 1},
@@ -83,6 +96,9 @@ export default {
     },
     validCity () {
       return (this.currentBook.city.length > 0)
+    },
+    selectedImage () {
+      return this.currentBook.image
     }
   },
   methods: {
@@ -94,7 +110,7 @@ export default {
         country: this.currentBook.country,
         city: this.currentBook.city,
         type: this.currentBook.type,
-        image: '',
+        image: this.currentBook.image,
         active: ''
       })
         .then(() => {
@@ -123,12 +139,36 @@ export default {
       this.currentBook.type = null
       this.currentBook.author = ''
       this.currentBook.description = ''
+    },
+    setImage (base64Image) {
+      this.currentBook.image = base64Image
+      console.log(this.currentBook.image)
+    },
+    startImageResize () {
+      console.log('startImageResize')
+    },
+    endImageResize () {
+      console.log('endImageResize')
+      // this.$refs.cropper.setCanvasData({ left: 0, top: 0, height: 220, width: 140 })
     }
   }
 }
 </script>
 
 <style scoped lang="stylus">
+  img
+    max-height 300px
+    max-width 100%
+  .preview
+    max-height 300px
+  input[type=file]
+    width 0px
+    height 0px
+    position absolute
+    z-index -1
+    overflow hidden
+    opacity 0
+    // width 140px
   // .vs-tooltip
     // z-index 20000
     // display block
