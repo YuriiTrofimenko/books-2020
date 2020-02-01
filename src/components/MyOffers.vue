@@ -27,7 +27,7 @@
         vs-tooltip(text='Add book')
           span
             vs-icon(icon='add' size='medium' color='white' bg='rgb(70, 150, 0)' @click='activeAddBookPrompt = true')
-    vs-row
+    vs-row.infinite-wrapper
       vs-col(:key='index' v-for='book,index in books' vs-type='flex' vs-justify='center' vs-align='center' vs-w='3')
         template
           vs-row(vs-justify='center')
@@ -47,14 +47,16 @@
                     vs-button(type='gradient' color='danger' icon='favorite')
                     vs-button(color='primary' icon='turned_in_not')
                     vs-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='settings')
+      infinite-loading(@infinite='myBooksInfiniteHandler' force-use-infinite-wrapper='.infinite-wrapper')
 </template>
 
 <script>
 import VueCropper from 'vue-cropperjs'
 import 'cropperjs/dist/cropper.css'
+import InfiniteLoading from 'vue-infinite-loading'
 export default {
   name: 'MyOffers',
-  components: { VueCropper },
+  components: { VueCropper, InfiniteLoading },
   data () {
     return {
       activeAddBookPrompt: false,
@@ -71,7 +73,8 @@ export default {
       typeOptions: [
         {text: 'дарю', value: 1},
         {text: 'дам почитать', value: 2}
-      ]
+      ],
+      isBooksListChanged: false
     }
   },
   computed: {
@@ -100,6 +103,24 @@ export default {
     selectedImage () {
       return this.currentBook.image
     }
+  },
+  watch: {
+    // Если изменился список
+    books (newVal, oldVal) {
+      this.isBooksListChanged = true
+    }
+  },
+  created () {
+    console.log('created')
+    /* if (this.books.length === 0) {
+      this.$store.dispatch('loadMyBooks')
+        .then(() => {
+          this.isBooksListChanged = false
+        })
+        .catch(err => {
+          console.log(err)
+        })
+    } */
   },
   methods: {
     acceptAlert (color) {
@@ -150,6 +171,23 @@ export default {
     endImageResize () {
       console.log('endImageResize')
       // this.$refs.cropper.setCanvasData({ left: 0, top: 0, height: 220, width: 140 })
+    },
+    myBooksInfiniteHandler ($state) {
+      this.$store.dispatch('loadMyBooks')
+        .then(() => {
+          console.log('isBooksListChanged', this.isBooksListChanged)
+          if (this.isBooksListChanged) {
+            console.log('$state.loaded()')
+            $state.loaded()
+          } else {
+            console.log('$state.complete()')
+            $state.complete()
+          }
+          this.isBooksListChanged = false
+        })
+        .catch(err => {
+          console.log(err)
+        })
     }
   }
 }
@@ -168,6 +206,9 @@ export default {
     z-index -1
     overflow hidden
     opacity 0
+  .infinite-wrapper
+    overflow scroll
+    height 800px
     // width 140px
   // .vs-tooltip
     // z-index 20000

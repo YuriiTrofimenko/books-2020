@@ -6,8 +6,8 @@
 </template>
 
 <script>
-import firebase from 'firebase'
-import store from './store'
+// import firebase from 'firebase'
+// import store from './store'
 import Header from '@/components/base/Header'
 export default {
   name: 'App',
@@ -30,7 +30,7 @@ export default {
         this.$vs.loading.close()
       }
     }
-  },
+  }/* ,
   created () {
     // Обработчик событий "пользователь вошел / вышел"
     firebase.auth().onAuthStateChanged(function (user) {
@@ -39,7 +39,7 @@ export default {
         store.dispatch('loadMyBooks', user)
       } else {}
     })
-  }
+  } */
 }
 </script>
 
