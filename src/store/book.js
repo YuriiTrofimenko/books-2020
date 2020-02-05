@@ -24,7 +24,7 @@ export default ({
         active
       }
     ) {
-      state.myBooks.push({
+      state.myBooks.unshift({
         id,
         title,
         author,
@@ -37,7 +37,7 @@ export default ({
       })
     },
     loadBooks (state, payload) {
-      console.log(...payload.books)
+      // console.log(...payload.books)
       state[payload.target].push(...payload.books)
     },
     editBook (state, payload) {

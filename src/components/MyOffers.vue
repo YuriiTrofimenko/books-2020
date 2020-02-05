@@ -111,16 +111,10 @@ export default {
     }
   },
   created () {
-    console.log('created')
-    /* if (this.books.length === 0) {
-      this.$store.dispatch('loadMyBooks')
-        .then(() => {
-          this.isBooksListChanged = false
-        })
-        .catch(err => {
-          console.log(err)
-        })
-    } */
+    // console.log('created')
+    if (this.books.length !== 0) {
+      this.books.length = 0
+    }
   },
   methods: {
     acceptAlert (color) {
@@ -135,13 +129,18 @@ export default {
         active: ''
       })
         .then(() => {
+          for (const key in this.currentBook) {
+            if (this.currentBook.hasOwnProperty(key)) {
+              this.currentBook[key] = ''
+            }
+          }
           this.$vs.notify({
             color: 'success',
             title: 'Book Created',
             text: `Book "${this.currentBook.title}" Created`
           })
           this.submitStatus = 'OK'
-          console.log(this.submitStatus)
+          // console.log(this.submitStatus)
         })
         .catch(err => {
           this.submitStatus = err.message
@@ -163,7 +162,7 @@ export default {
     },
     setImage (base64Image) {
       this.currentBook.image = base64Image
-      console.log(this.currentBook.image)
+      // console.log(this.currentBook.image)
     },
     startImageResize () {
       console.log('startImageResize')
@@ -175,12 +174,12 @@ export default {
     myBooksInfiniteHandler ($state) {
       this.$store.dispatch('loadMyBooks')
         .then(() => {
-          console.log('isBooksListChanged', this.isBooksListChanged)
+          // console.log('isBooksListChanged', this.isBooksListChanged)
           if (this.isBooksListChanged) {
-            console.log('$state.loaded()')
+            // console.log('$state.loaded()')
             $state.loaded()
           } else {
-            console.log('$state.complete()')
+            // console.log('$state.complete()')
             $state.complete()
           }
           this.isBooksListChanged = false
