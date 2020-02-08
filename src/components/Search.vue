@@ -30,7 +30,8 @@ export default {
   components: { InfiniteLoading },
   data () {
     return {
-      isBooksListChanged: false
+      isBooksListChanged: false,
+      loadBooksFistAttemt: true
     }
   },
   computed: {
@@ -66,7 +67,7 @@ export default {
             $state.loaded()
           } else {
             // $state.complete()
-            if (this.$store.getters.currentBooksOwner === -1) {
+            if (this.loadBooksFistAttemt || this.$store.getters.currentBooksOwner === -1) {
               console.log('$state.complete()')
               $state.complete()
             } else {
@@ -74,6 +75,7 @@ export default {
               $state.loaded()
             }
           }
+          this.loadBooksFistAttemt = false
           this.isBooksListChanged = false
         })
         .catch(err => {

@@ -103,12 +103,14 @@ export default ({
             // .limitToFirst(1)
             .once('value')
         let booksCount = booksCountResponse.val()
+        // Если пользователь ранее не добавлял ни одной книги
         if (!booksCount) {
           // Добавляем в корень удаленного хранилища, в дочерний узел usersIds
           // Id данного пользователя
           firebase.database()
             .ref('usersIds')
-            .push({'id': getters.user.id})
+            .push({'id': getters.user.id, 'lastAddDate': (new Date()).toISOString()})
+          console.log({'id': getters.user.id, 'lastAddDate': (new Date()).toISOString()})
           // Добавляем в узел пользователя в удаленном хранилище, в дочерний узел booksCount
           // объект счетчика собственных книг с начальным значением 1
           firebase.database()
@@ -118,12 +120,20 @@ export default ({
           let arrayOfKeys =
             Object.keys(booksCount)
           booksCount = booksCount[arrayOfKeys[0]]
-          // console.log(booksCount)
+          // Увеличиваем значение счетчика книг данного пользователя в firebase
           firebase.database()
             .ref(getters.user.id + '/booksCount/' + arrayOfKeys[0])
-            // .orderByKey()
-            // .limitToFirst(1)
             .update({'count': ++booksCount.count})
+          // Обновляем дату последнего добавления книги данного пользователя в firebase
+          firebase.database()
+            .ref('usersIds')
+            .orderByChild('id')
+            .equalTo(getters.user.id)
+            .once('value', function (snapshot) {
+              snapshot.forEach(function (child) {
+                child.ref.update({'lastAddDate': (new Date()).toISOString()})
+              })
+            })
         }
         // Send mutation
         commit('newBook', {
@@ -144,6 +154,7 @@ export default ({
       commit('setLoading', true)
       try {
         // Если нет ссылки на последнюю загруженную собственную книгу
+        // (вывод книг только начинается)
         if (!getters.oldestMyBookKeyRef) {
           // Пытаемся получить из удаленного хранилища четыре собственные книги пользователя,
           // отсортировав по ключам
@@ -269,15 +280,16 @@ export default ({
         console.log('ownersBooksRemain', getters.ownersBooksRemain)
         console.log('end test')
         // Если не осталось ИД пользователей в списке
+        // (все книги выведены)
         if (getters.currentBooksOwner === -1) {
-          console.log('-------------------1')
           // Завершаем работу данного действия - книг для загрузки в удаленном хранилище не осталось
           commit('setCurrentBooksOwner', null)
           commit('setLoading', false)
           return
         }
+        /* Установка текущего владельца для вывода / продолжения вывода его книг */
         // Если у текущего владельца остаются книги -
-        // не меняем владельца
+        // не меняем текущего владельца
         if (getters.ownersBooksRemain) {
           console.log('ownersBooksRemain', getters.ownersBooksRemain)
         } else {
@@ -285,53 +297,71 @@ export default ({
           if (getters.currentBooksOwner) {
             // Пытаемся установить следующего владельца,
             // запрашивая из удаленного хранилища ИД текущего владельца книг и следующего за ним
-            console.log('currentBooksOwner', getters.currentBooksOwner)
+            // console.log('currentBooksOwner', getters.currentBooksOwner)
             const userIdsResponse =
               await firebase.database()
                 .ref('usersIds')
-                .orderByKey()
-                .endAt(getters.currentBooksOwner.key)
+                // .orderByKey()
+                .orderByChild('lastAddDate')
+                .endAt(getters.currentBooksOwner.lastAddDate)
                 .limitToLast(2)
                 .once('value')
             // Извлекаем ответ из объекта-оболочки результата запроса
             const userIds = userIdsResponse.val()
             console.log('userIds', userIds)
-            // Если объект получен
+            // Если объект ИД двоих владельцев получен
             if (userIds) {
               // Оставляем только ключ нового владельца из двух полученных
+              var sortable = []
+              for (var uid in userIds) {
+                sortable.push([uid, userIds[uid]])
+              }
+              console.log('sortable', sortable)
+              sortable
+                .sort((uid1, uid2) => uid1[1].lastAddDate.localeCompare(uid2[1].lastAddDate))
+                .slice(1)
+              var userIdsSorted = {}
+              sortable.forEach(function (item) {
+                userIdsSorted[item[0]] = item[1]
+              })
               let arrayOfKeys =
-                Object.keys(userIds)
-                  .sort()
-                  .reverse()
-                  .slice(1)
+                Object.keys(userIdsSorted)
               // Когда не останется ни одного ИД в списке ИД пользователей -
               // сохраняем в локальное хранилище значение -1
               console.log('arrayOfKeys', arrayOfKeys)
-              commit('setCurrentBooksOwner', userIds[arrayOfKeys[0]] ? {key: arrayOfKeys[0], id: userIds[arrayOfKeys[0]].id} : -1)
+              if (arrayOfKeys && arrayOfKeys.length === 1) {
+                commit('setCurrentBooksOwner', -1)
+              } else {
+                commit('setCurrentBooksOwner', userIds[arrayOfKeys[0]] ? {key: arrayOfKeys[0], id: userIds[arrayOfKeys[0]].id, lastAddDate: userIds[arrayOfKeys[0]].lastAddDate} : -1)
+              }
               if (userIds[arrayOfKeys[0]]) {
                 commit('setOwnersBooksRemain', true)
                 commit('setOldestBookKeyRef', null)
                 console.log('rebuilt', getters.ownersBooksRemain)
               }
+            } else {
+              commit('setCurrentBooksOwner', -1)
             }
           } else {
             // Иначе сортируем в удаленном хранилище Id всех пользователей и находим Id самого первого
             const userIdsResponse =
               await firebase.database()
                 .ref('usersIds')
-                .orderByKey()
+                // .orderByKey()
+                .orderByChild('lastAddDate')
                 .limitToLast(1)
                 .once('value')
             // Извлекаем значение из оболочки ответа удаленного хранилища
             const userIds = userIdsResponse.val()
             if (userIds) {
               let arrayOfKeys = Object.keys(userIds)
-              commit('setCurrentBooksOwner', userIds[arrayOfKeys[0]] ? {key: arrayOfKeys[0], id: userIds[arrayOfKeys[0]].id} : -1)
+              commit('setCurrentBooksOwner', userIds[arrayOfKeys[0]] ? {key: arrayOfKeys[0], id: userIds[arrayOfKeys[0]].id, lastAddDate: userIds[arrayOfKeys[0]].lastAddDate} : -1)
             }
           }
         }
-        // Если нет ссылки на последнюю загруженную книгу
-        if (!getters.oldestBookKeyRef) {
+        /* Вывод книг текущего владельца */
+        // Если выбран текущий владелец и нет ссылки на последнюю загруженную книгу
+        if (getters.currentBooksOwner && !getters.oldestBookKeyRef) {
           // Пытаемся получить из удаленного хранилища четыре книги текущего пользователя,
           // отсортировав по ключам
           const booksResponse =
@@ -381,7 +411,9 @@ export default ({
               commit('setOwnersBooksRemain', true)
             }
           }
-        } else {
+        } else if (getters.currentBooksOwner) {
+          // Иначе усли выбран текущий владелец и есть ссылка на последнюю загруженную книгу -
+          // пытаемся продолжить вывод книг этого пользователя
           /* // Попытка получить из удаленного хранилища объект
           // счетчика книг данного пользователя
           const booksCountResponse =
