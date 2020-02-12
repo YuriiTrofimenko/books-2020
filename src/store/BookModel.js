@@ -9,7 +9,7 @@ export default class BookModel {
     this.type = type
     this.image = image
     this.active = active
-    this.updatedAt = updatedAt 
+    this.updatedAt = updatedAt
     this.id = id
   }
 }

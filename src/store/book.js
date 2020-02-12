@@ -1,4 +1,5 @@
 import firebase from 'firebase/app'
+import axios from 'axios'
 
 import Book from './BookModel'
 
@@ -82,9 +83,22 @@ export default ({
       commit('clearError')
       commit('setLoading', true)
       try {
+        axios.get('http://books-as-a-gift.zzz.com.ua/')
+          .then(function (response) {
+            // handle success
+            console.log(response)
+          })
+          .catch(function (error) {
+            // handle error
+            console.log(error)
+          })
+          .then(function () {
+            // always executed
+            console.log('then')
+          })
         // Use helped class
         // console.log(payload)
-        const newBook = new Book(
+        /* const newBook = new Book(
           payload.title,
           payload.author,
           payload.description,
@@ -139,7 +153,7 @@ export default ({
         commit('newBook', {
           ...newBook,
           id: book.key
-        })
+        }) */
 
         commit('setLoading', false)
       } catch (error) {
