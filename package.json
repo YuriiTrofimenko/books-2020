@@ -14,7 +14,6 @@
     "build": "node build/build.js"
   },
   "dependencies": {
-    "axios": "^0.19.2",
     "firebase": "^7.6.0",
     "firebaseui": "^4.3.0",
     "material-icons": "^0.3.1",

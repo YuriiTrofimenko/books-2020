@@ -107,6 +107,7 @@ export default {
   watch: {
     // Если изменился список
     books (newVal, oldVal) {
+      console.log(oldVal, newVal)
       this.isBooksListChanged = true
     }
   },
@@ -174,12 +175,12 @@ export default {
     myBooksInfiniteHandler ($state) {
       this.$store.dispatch('loadMyBooks')
         .then(() => {
-          // console.log('isBooksListChanged', this.isBooksListChanged)
+          console.log('isBooksListChanged', this.isBooksListChanged)
           if (this.isBooksListChanged) {
-            // console.log('$state.loaded()')
+            console.log('$state.loaded()')
             $state.loaded()
           } else {
-            // console.log('$state.complete()')
+            console.log('$state.complete()')
             $state.complete()
           }
           this.isBooksListChanged = false

@@ -15,13 +15,9 @@ import ImageUploader from 'vue-image-upload-resize'
 import 'vuesax/dist/vuesax.css'
 import 'material-icons/iconfont/material-icons.css'
 
-import axios from 'axios'
-import VueAxios from 'vue-axios'
-
 Vue.config.productionTip = false
 Vue.use(Vuesax)
 Vue.use(ImageUploader)
-Vue.use(VueAxios, axios)
 
 Vue.prototype.$lastUser = null
 

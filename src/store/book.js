@@ -1,5 +1,4 @@
 import firebase from 'firebase/app'
-import axios from 'axios'
 
 import Book from './BookModel'
 
@@ -8,7 +7,7 @@ export default ({
     // Локальный массив Books
     books: [],
     myBooks: [],
-    oldestMyBookKeyRef: null,
+    oldestMyBookId: null,
     oldestBookKeyRef: null,
     currentBooksOwner: null,
     ownersBooksRemain: false
@@ -18,6 +17,8 @@ export default ({
       state,
       {
         id,
+        updatedAt,
+        userId,
         title,
         author,
         description,
@@ -30,6 +31,8 @@ export default ({
     ) {
       state.myBooks.unshift({
         id,
+        updatedAt,
+        userId,
         title,
         author,
         description,
@@ -63,8 +66,8 @@ export default ({
       const deletedBook = state.myBooks.find(book => book.id === payload.id)
       state.myBooks.splice(state[payload.target].indexOf(deletedBook), 1)
     },
-    setOldestMyBookKeyRef (state, payload) {
-      state.oldestMyBookKeyRef = payload
+    setOldestMyBookId (state, payload) {
+      state.oldestMyBookId = payload
     },
     setOldestBookKeyRef (state, payload) {
       state.oldestBookKeyRef = payload
@@ -83,7 +86,7 @@ export default ({
       commit('clearError')
       commit('setLoading', true)
       try {
-        axios.get('http://books-as-a-gift.zzz.com.ua/')
+        /* axios.get('http://127.0.0.1:8082/api.php?controller=book&action=create')
           .then(function (response) {
             // handle success
             console.log(response)
@@ -95,7 +98,7 @@ export default ({
           .then(function () {
             // always executed
             console.log('then')
-          })
+          }) */
         // Use helped class
         // console.log(payload)
         /* const newBook = new Book(
@@ -169,54 +172,128 @@ export default ({
       try {
         // Если нет ссылки на последнюю загруженную собственную книгу
         // (вывод книг только начинается)
-        if (!getters.oldestMyBookKeyRef) {
-          // Пытаемся получить из удаленного хранилища четыре собственные книги пользователя,
-          // отсортировав по ключам
-          const booksResponse =
-            await firebase.database()
-              .ref(getters.user.id + '/books')
-              .orderByKey()
-              .limitToLast(4)
-              .once('value')
-          // Get value
-          const books = booksResponse.val()
-          // console.log(books)
-          if (books) {
-            let arrayOfKeys =
-              Object.keys(books)
-                .sort()
-                .reverse()
-            commit('setOldestMyBookKeyRef', arrayOfKeys[arrayOfKeys.length - 1])
-            // ***
-            // New array
-            const booksArray = []
-            // Get task key (id)
-            arrayOfKeys.forEach(key => {
-              const b = books[key]
-              // console.log(n)
-              booksArray.push(
-                new Book(
-                  b.title,
-                  b.author,
-                  b.description,
-                  b.country,
-                  b.city,
-                  b.type,
-                  b.image,
-                  b.active,
-                  // n.user,
-                  key
+        // if (!getters.oldestMyBookId) {
+        // axios.get('http://books-as-a-gift.zzz.com.ua/')
+        /* axios.post('http://127.0.0.1:8082/api.php?controller=book&action=filter', {
+          'userId': 'P8834CgqGfVS7LO3PfGpmiybvhw1'
+        }, { 'headers': {
+          // remove headers
+        }})
+          .then(function (response) {
+            // handle success
+            console.log(response)
+          })
+          .catch(function (error) {
+            // handle error
+            console.log(error)
+          })
+          .then(function () {
+            // always executed
+            console.log('then')
+          }) */
+        let filterData = {
+          'userId': 'P8834CgqGfVS7LO3PfGpmiybvhw1'
+        }
+        if (getters.oldestMyBookId) {
+          filterData.lastId = getters.oldestMyBookId
+        }
+        const url = 'http://127.0.0.1:8082/api.php?controller=book&action=filter'
+        const requestData = {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify(filterData)
+        }
+        const request = new Request(url, requestData)
+        await fetch(request).then(function (response) {
+          return response.json()
+        }).then(function (response) {
+          if (response.data) {
+            if (response.data.length > 0) {
+              commit('setOldestMyBookId', response.data[response.data.length - 1].id)
+              response.data.forEach(myBook => {
+                console.log(myBook)
+              })
+              const booksArray = []
+              // Get task key (id)
+              response.data.forEach(myBook => {
+                // console.log(n)
+                booksArray.push(
+                  new Book(
+                    myBook.title,
+                    myBook.author,
+                    myBook.genre,
+                    myBook.description,
+                    myBook.country,
+                    myBook.city,
+                    myBook.type,
+                    myBook.image,
+                    myBook.active,
+                    getters.user.id,
+                    '-',
+                    myBook.id
+                  )
                 )
-              )
-            })
-            const payload = {
-              target: 'myBooks',
-              books: booksArray
+              })
+              const payload = {
+                target: 'myBooks',
+                books: booksArray
+              }
+              // Send mutation
+              commit('loadBooks', payload)
+            } else {
+              commit('setOldestMyBookId', null)
             }
-            // Send mutation
-            commit('loadBooks', payload)
           }
-        } else {
+        }).catch(function (e) {
+          console.log(e)
+        })
+        // Пытаемся получить из удаленного хранилища четыре собственные книги пользователя,
+        // отсортировав по ключам
+        /* const booksResponse =
+          await firebase.database()
+            .ref(getters.user.id + '/books')
+            .orderByKey()
+            .limitToLast(4)
+            .once('value') */
+        // Get value
+        /* const books = booksResponse.val()
+        // console.log(books)
+        if (books) {
+          let arrayOfKeys =
+            Object.keys(books)
+              .sort()
+              .reverse()
+          commit('setOldestMyBookId', arrayOfKeys[arrayOfKeys.length - 1])
+          // New array
+          const booksArray = []
+          // Get task key (id)
+          arrayOfKeys.forEach(key => {
+            const b = books[key]
+            // console.log(n)
+            booksArray.push(
+              new Book(
+                b.title,
+                b.author,
+                b.description,
+                b.country,
+                b.city,
+                b.type,
+                b.image,
+                b.active,
+                // n.user,
+                key
+              )
+            )
+          })
+          const payload = {
+            target: 'myBooks',
+            books: booksArray
+          }
+          // Send mutation
+          commit('loadBooks', payload)
+        } */
+        // }
+        /* else {
           const booksCountResponse =
             await firebase.database()
               .ref(getters.user.id + '/booksCount')
@@ -232,7 +309,7 @@ export default ({
                 await firebase.database()
                   .ref(getters.user.id + '/books')
                   .orderByKey()
-                  .endAt(getters.oldestMyBookKeyRef)
+                  .endAt(getters.oldestMyBookId)
                   .limitToLast(5)
                   .once('value')
               // Get value
@@ -243,7 +320,7 @@ export default ({
                     .sort()
                     .reverse()
                     .slice(1)
-                commit('setOldestMyBookKeyRef', arrayOfKeys[arrayOfKeys.length - 1])
+                commit('setOldestMyBookId', arrayOfKeys[arrayOfKeys.length - 1])
                 // ***
                 // New array
                 const booksArray = []
@@ -275,7 +352,7 @@ export default ({
               }
             }
           }
-        }
+        } */
         // ***
         commit('setLoading', false)
       } catch (error) {
@@ -561,8 +638,8 @@ export default ({
     myBooks (state) {
       return state.myBooks
     },
-    oldestMyBookKeyRef (state) {
-      return state.oldestMyBookKeyRef
+    oldestMyBookId (state) {
+      return state.oldestMyBookId
     },
     oldestBookKeyRef (state) {
       return state.oldestBookKeyRef
