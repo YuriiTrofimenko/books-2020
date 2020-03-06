@@ -1,7 +1,8 @@
 export default {
   state: {
     loading: false,
-    error: null
+    error: null,
+    baseRestApiUrl: 'http://127.0.0.1:8082/api.php'// http://books-as-a-gift.zzz.com.ua/api.php
   },
   mutations: {
     setLoading (state, payload) {
@@ -36,6 +37,9 @@ export default {
     // Get error message
     error (state) {
       return state.error
+    },
+    baseRestApiUrl (state) {
+      return state.baseRestApiUrl
     }
   }
 }

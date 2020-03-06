@@ -7,8 +7,15 @@
         vs-select(label='type' v-model='currentBook.type')
           vs-select-item(:key='index' :value='typeOption.value' :text='typeOption.text' v-for='typeOption, index in typeOptions')
         vs-input(placeholder='author' label='автор' v-model='currentBook.author')
-        vs-input(placeholder='country' label='страна' v-model='currentBook.country')
-        vs-input(placeholder='city' :disabled='!validCountry' label='город' v-model='currentBook.city')
+        // vs-input(placeholder='country' label='страна' v-model='currentBook.country')
+        // vue-suggestion(:items='suggestedCountries' v-model='currentBook.country' :setLabel='setCountryLabel' @onInputChange='countryInputChange' @onItemSelected='countryItemSelected' :itemTemplate='suggestionItemTemplate')
+        vue-autosuggest(v-model="currentBook.country.name" :suggestions="suggestedCountries" :get-suggestion-value="getCountriesSuggestionValue" :input-props="{id:'autosuggest__input', placeholder:'страна'}" @input='countryInputChange' @selected='countryItemSelected')
+          template(slot-scope='{suggestion}')
+            span {{suggestion.item.name}}
+        // vs-input(placeholder='city' :disabled='!validCountry' label='город' v-model='currentBook.city')
+        vue-autosuggest(v-show='validCountry' v-model="currentBook.city.name" :suggestions="suggestedCities" :get-suggestion-value="getCitiesSuggestionValue" :input-props="{id:'autosuggest__input', placeholder:'город?'}" @input='cityInputChange' @selected='cityItemSelected')
+          template(slot-scope='{suggestion}')
+            span {{suggestion.item.name}}
         vs-textarea(label='описание книги' v-model='currentBook.description' counter='100' :counter-danger.sync='currentBook.counterDanger')
         .preview
           vue-cropper(ref='cropper' :aspect-ratio='1' :viewMode='3' :src='selectedImage' preview='.preview')
@@ -54,9 +61,10 @@
 import VueCropper from 'vue-cropperjs'
 import 'cropperjs/dist/cropper.css'
 import InfiniteLoading from 'vue-infinite-loading'
+import { VueAutosuggest } from 'vue-autosuggest'
 export default {
   name: 'MyOffers',
-  components: { VueCropper, InfiniteLoading },
+  components: { VueCropper, InfiniteLoading, VueAutosuggest },
   data () {
     return {
       activeAddBookPrompt: false,
@@ -66,21 +74,45 @@ export default {
         author: '',
         description: '',
         counterDanger: false,
-        country: '',
-        city: '',
+        country: {
+          id: null,
+          name: ''
+        },
+        city: {
+          id: null,
+          countryId: null,
+          name: ''
+        },
         image: ''
       },
+      suggestedCountries: [],
+      suggestedCities: [],
       typeOptions: [
         {text: 'дарю', value: 1},
         {text: 'дам почитать', value: 2}
       ],
-      isBooksListChanged: false
+      isBooksListChanged: false/* ,
+      suggestionItemTemplate */
     }
   },
   computed: {
     books () {
       // источник данных о моих книгах
       return this.$store.getters.myBooks
+    },
+    countries () {
+      return [
+        {
+          data: this.$store.getters.countries
+        }
+      ]
+    },
+    cities () {
+      return [
+        {
+          data: this.$store.getters.cities
+        }
+      ]
     },
     validTitle () {
       return (this.currentBook.title.length > 0)
@@ -95,10 +127,10 @@ export default {
       return (this.currentBook.description.length <= 100)
     },
     validCountry () {
-      return (this.currentBook.country.length > 0)
+      return (this.currentBook.country.name.length > 0)
     },
     validCity () {
-      return (this.currentBook.city.length > 0)
+      return (this.currentBook.city.name.length > 0)
     },
     selectedImage () {
       return this.currentBook.image
@@ -107,33 +139,81 @@ export default {
   watch: {
     // Если изменился список
     books (newVal, oldVal) {
-      console.log(oldVal, newVal)
       this.isBooksListChanged = true
+    },
+    countries (newVal, oldVal) {
+      this.suggestedCountries = newVal
+      if (newVal[0].data.length === 0) {
+        this.currentBook.country.id = null
+      }
+    },
+    cities (newVal, oldVal) {
+      this.suggestedCities = newVal
+      if (newVal[0].data.length === 0) {
+        this.currentBook.city.id = null
+      }
     }
   },
+  // В момент создания экземпляра компонента
   created () {
-    // console.log('created')
+    // Если компонент хранит список моделей книг -
+    // очистить этот список
     if (this.books.length !== 0) {
       this.books.length = 0
     }
   },
   methods: {
-    acceptAlert (color) {
-      this.$store.dispatch('newBook', {
+    async acceptAlert (color) {
+      if (!this.currentBook.country.id) {
+        await this.$store.dispatch('newCountry', {
+          name: this.currentBook.country.name
+        })
+          .then(() => {
+            this.currentBook.country.id = this.$store.getters.newCountryId
+            this.submitStatus = 'OK'
+          })
+          .catch(err => {
+            this.submitStatus = err.message
+          })
+      }
+      if (!this.currentBook.city.id) {
+        await this.$store.dispatch('newCity', {
+          name: this.currentBook.city.name,
+          countryId: this.currentBook.country.id
+        })
+          .then(() => {
+            this.currentBook.city.id = this.$store.getters.newCityId
+            this.submitStatus = 'OK'
+          })
+          .catch(err => {
+            this.submitStatus = err.message
+          })
+      }
+      console.log('this.currentBook', this.currentBook)
+      /* this.$store.dispatch('newBook', {
         title: this.currentBook.title,
         author: this.currentBook.author,
         description: this.currentBook.description,
-        country: this.currentBook.country,
-        city: this.currentBook.city,
+        country: this.currentBook.country.id,
+        city: this.currentBook.city.id,
         type: this.currentBook.type,
         image: this.currentBook.image,
-        active: ''
+        active: 1
       })
         .then(() => {
           for (const key in this.currentBook) {
             if (this.currentBook.hasOwnProperty(key)) {
               this.currentBook[key] = ''
             }
+          }
+          this.currentBook.country = {
+            id: null,
+            name: ''
+          }
+          this.currentBook.city = {
+            id: null,
+            name: '',
+            countryId: null
           }
           this.$vs.notify({
             color: 'success',
@@ -146,7 +226,7 @@ export default {
         .catch(err => {
           this.submitStatus = err.message
           console.log(this.submitStatus)
-        })
+        }) */
     },
     close () {
       this.$vs.notify({
@@ -160,6 +240,15 @@ export default {
       this.currentBook.type = null
       this.currentBook.author = ''
       this.currentBook.description = ''
+      this.currentBook.country = {
+        id: null,
+        name: ''
+      }
+      this.currentBook.city = {
+        id: null,
+        name: '',
+        countryId: null
+      }
     },
     setImage (base64Image) {
       this.currentBook.image = base64Image
@@ -175,7 +264,6 @@ export default {
     myBooksInfiniteHandler ($state) {
       this.$store.dispatch('loadMyBooks')
         .then(() => {
-          console.log('isBooksListChanged', this.isBooksListChanged)
           if (this.isBooksListChanged) {
             console.log('$state.loaded()')
             $state.loaded()
@@ -188,6 +276,62 @@ export default {
         .catch(err => {
           console.log(err)
         })
+    },
+    countryItemSelected (selectedCountry) {
+      this.currentBook.country = selectedCountry.item
+      this.currentBook.city = {
+        id: null,
+        name: '',
+        countryId: null
+      }
+      this.$store.dispatch('loadCities', {
+        startsWith: '',
+        countryId: this.currentBook.country.id
+      })
+    },
+    async countryInputChange (text) {
+      this.currentBook.country.id = null
+      this.currentBook.city = {
+        id: null,
+        name: '',
+        countryId: null
+      }
+      await this.$store.dispatch('loadCities', {
+        startsWith: text,
+        countryId: null
+      })
+      // your search method
+      // now `items` will be showed in the suggestion list
+      this.$store.dispatch('loadCountries', {
+        startsWith: text
+      })
+        .then(() => {
+          console.log('country suggestions', this.countries)
+        })
+        .catch(err => {
+          console.log(err)
+        })
+    },
+    getCountriesSuggestionValue (suggestion) {
+      return suggestion.item.name
+    },
+    cityItemSelected (selectedCity) {
+      this.currentBook.city = selectedCity.item
+    },
+    cityInputChange (text) {
+      this.$store.dispatch('loadCities', {
+        startsWith: text,
+        countryId: this.currentBook.country.id
+      })
+        .then(() => {
+          console.log('city suggestions', this.cities)
+        })
+        .catch(err => {
+          console.log(err)
+        })
+    },
+    getCitiesSuggestionValue (suggestion) {
+      return suggestion.item.name
     }
   }
 }

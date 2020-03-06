@@ -21,6 +21,7 @@ export default ({
         userId,
         title,
         author,
+        genre,
         description,
         country,
         city,
@@ -35,6 +36,7 @@ export default ({
         userId,
         title,
         author,
+        genre,
         description,
         country,
         city,
@@ -86,78 +88,39 @@ export default ({
       commit('clearError')
       commit('setLoading', true)
       try {
-        /* axios.get('http://127.0.0.1:8082/api.php?controller=book&action=create')
-          .then(function (response) {
-            // handle success
-            console.log(response)
-          })
-          .catch(function (error) {
-            // handle error
-            console.log(error)
-          })
-          .then(function () {
-            // always executed
-            console.log('then')
-          }) */
-        // Use helped class
-        // console.log(payload)
-        /* const newBook = new Book(
-          payload.title,
-          payload.author,
-          payload.description,
-          payload.country,
-          payload.city,
-          payload.type,
-          payload.image,
-          payload.active
-        )
-        // console.log(newBook)
-        const book = await firebase.database().ref(getters.user.id + '/books').push(newBook)
-        const booksCountResponse =
-          await firebase.database()
-            .ref(getters.user.id + '/booksCount')
-            // .orderByKey()
-            // .limitToFirst(1)
-            .once('value')
-        let booksCount = booksCountResponse.val()
-        // Если пользователь ранее не добавлял ни одной книги
-        if (!booksCount) {
-          // Добавляем в корень удаленного хранилища, в дочерний узел usersIds
-          // Id данного пользователя
-          firebase.database()
-            .ref('usersIds')
-            .push({'id': getters.user.id, 'lastAddDate': (new Date()).toISOString()})
-          console.log({'id': getters.user.id, 'lastAddDate': (new Date()).toISOString()})
-          // Добавляем в узел пользователя в удаленном хранилище, в дочерний узел booksCount
-          // объект счетчика собственных книг с начальным значением 1
-          firebase.database()
-            .ref(getters.user.id + '/booksCount')
-            .push({'count': 1})
-        } else {
-          let arrayOfKeys =
-            Object.keys(booksCount)
-          booksCount = booksCount[arrayOfKeys[0]]
-          // Увеличиваем значение счетчика книг данного пользователя в firebase
-          firebase.database()
-            .ref(getters.user.id + '/booksCount/' + arrayOfKeys[0])
-            .update({'count': ++booksCount.count})
-          // Обновляем дату последнего добавления книги данного пользователя в firebase
-          firebase.database()
-            .ref('usersIds')
-            .orderByChild('id')
-            .equalTo(getters.user.id)
-            .once('value', function (snapshot) {
-              snapshot.forEach(function (child) {
-                child.ref.update({'lastAddDate': (new Date()).toISOString()})
-              })
-            })
+        let newBookData = {
+          'title': payload.title,
+          'author': payload.author,
+          'genre': '',
+          'description': payload.description,
+          'countryId': payload.country,
+          'cityId': payload.city,
+          'typeId': payload.type,
+          'image': payload.image,
+          'active': payload.active ? 1 : 0,
+          'userId': getters.user.id,
+          'id': null,
+          'updatedAt': null
         }
-        // Send mutation
-        commit('newBook', {
-          ...newBook,
-          id: book.key
-        }) */
-
+        const url = getters.baseRestApiUrl + '?controller=book&action=create'
+        const requestData = {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify(newBookData)
+        }
+        const request = new Request(url, requestData)
+        await fetch(request).then(function (response) {
+          return response.json()
+        }).then(function (response) {
+          if (response.data) {
+            // Send mutation
+            commit('newBook', {
+              ...response.data
+            })
+          }
+        }).catch(function (e) {
+          console.log(e)
+        })
         commit('setLoading', false)
       } catch (error) {
         commit('setLoading', false)
@@ -170,34 +133,13 @@ export default ({
       commit('clearError')
       commit('setLoading', true)
       try {
-        // Если нет ссылки на последнюю загруженную собственную книгу
-        // (вывод книг только начинается)
-        // if (!getters.oldestMyBookId) {
-        // axios.get('http://books-as-a-gift.zzz.com.ua/')
-        /* axios.post('http://127.0.0.1:8082/api.php?controller=book&action=filter', {
-          'userId': 'P8834CgqGfVS7LO3PfGpmiybvhw1'
-        }, { 'headers': {
-          // remove headers
-        }})
-          .then(function (response) {
-            // handle success
-            console.log(response)
-          })
-          .catch(function (error) {
-            // handle error
-            console.log(error)
-          })
-          .then(function () {
-            // always executed
-            console.log('then')
-          }) */
         let filterData = {
-          'userId': 'P8834CgqGfVS7LO3PfGpmiybvhw1'
+          'userId': getters.user.id
         }
         if (getters.oldestMyBookId) {
           filterData.lastId = getters.oldestMyBookId
         }
-        const url = 'http://127.0.0.1:8082/api.php?controller=book&action=filter'
+        const url = getters.baseRestApiUrl + '?controller=book&action=filter'
         const requestData = {
           method: 'POST',
           mode: 'cors',
@@ -216,7 +158,6 @@ export default ({
               const booksArray = []
               // Get task key (id)
               response.data.forEach(myBook => {
-                // console.log(n)
                 booksArray.push(
                   new Book(
                     myBook.title,
@@ -503,24 +444,6 @@ export default ({
             }
           }
         } else if (getters.currentBooksOwner) {
-          // Иначе усли выбран текущий владелец и есть ссылка на последнюю загруженную книгу -
-          // пытаемся продолжить вывод книг этого пользователя
-          /* // Попытка получить из удаленного хранилища объект
-          // счетчика книг данного пользователя
-          const booksCountResponse =
-            await firebase.database()
-              .ref(getters.currentBooksOwner + '/booksCount')
-              .once('value')
-          let booksCount = booksCountResponse.val()
-          // Если получен объект со значением счетчика
-          if (booksCount) {
-            // Извлекаем значение счетчика из единственного объекта (под индексом 0)
-            let arrayOfCountKeys =
-              Object.keys(booksCount)
-            booksCount = booksCount[arrayOfCountKeys[0]]
-            // Если количество книг в локальном хранилище меньше, чем в удаленном
-            console.log(booksCount.count, ' - ', getters.books.length)
-            if (booksCount.count > getters.books.length) { */
           // Пытаемся получить следующие 4 + 1 последнюю из предыдущего множества
           const booksResponse =
             await firebase.database()
