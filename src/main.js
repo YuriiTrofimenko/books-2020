@@ -15,6 +15,8 @@ import ImageUploader from 'vue-image-upload-resize'
 import 'vuesax/dist/vuesax.css'
 import 'material-icons/iconfont/material-icons.css'
 
+import './assets/style.styl'
+
 Vue.config.productionTip = false
 Vue.use(Vuesax)
 Vue.use(ImageUploader)

@@ -1,7 +1,7 @@
 <template lang="pug">
   div
     Header
-    router-view
+    router-view.container
 
 </template>
 

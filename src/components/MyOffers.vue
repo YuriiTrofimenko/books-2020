@@ -7,12 +7,9 @@
         vs-select(label='type' v-model='currentBook.type')
           vs-select-item(:key='index' :value='typeOption.value' :text='typeOption.text' v-for='typeOption, index in typeOptions')
         vs-input(placeholder='author' label='автор' v-model='currentBook.author')
-        // vs-input(placeholder='country' label='страна' v-model='currentBook.country')
-        // vue-suggestion(:items='suggestedCountries' v-model='currentBook.country' :setLabel='setCountryLabel' @onInputChange='countryInputChange' @onItemSelected='countryItemSelected' :itemTemplate='suggestionItemTemplate')
         vue-autosuggest(v-model="currentBook.country.name" :suggestions="suggestedCountries" :get-suggestion-value="getCountriesSuggestionValue" :input-props="{id:'autosuggest__input', placeholder:'страна'}" @input='countryInputChange' @selected='countryItemSelected')
           template(slot-scope='{suggestion}')
             span {{suggestion.item.name}}
-        // vs-input(placeholder='city' :disabled='!validCountry' label='город' v-model='currentBook.city')
         vue-autosuggest(v-show='validCountry' v-model="currentBook.city.name" :suggestions="suggestedCities" :get-suggestion-value="getCitiesSuggestionValue" :input-props="{id:'autosuggest__input', placeholder:'город?'}" @input='cityInputChange' @selected='cityItemSelected')
           template(slot-scope='{suggestion}')
             span {{suggestion.item.name}}
@@ -35,7 +32,7 @@
           span
             vs-icon(icon='add' size='medium' color='white' bg='rgb(70, 150, 0)' @click='activeAddBookPrompt = true')
     vs-row.infinite-wrapper
-      vs-col(:key='index' v-for='book,index in books' vs-type='flex' vs-justify='center' vs-align='center' vs-w='3')
+      vs-col(:key='index' v-for='book,index in books' vs-type='flex' vs-justify='center' vs-align='center' vs-lg='6' vs-sm='6' vs-xs='12')
         template
           vs-row(vs-justify='center')
             vs-col(type='flex' vs-justify='center' vs-align='center' vs-w='12')
@@ -91,8 +88,8 @@ export default {
         {text: 'дарю', value: 1},
         {text: 'дам почитать', value: 2}
       ],
-      isBooksListChanged: false/* ,
-      suggestionItemTemplate */
+      isBooksListChanged: false,
+      infiniteLoadingState: null
     }
   },
   computed: {
@@ -154,12 +151,15 @@ export default {
       }
     }
   },
-  // В момент создания экземпляра компонента
   created () {
-    // Если компонент хранит список моделей книг -
-    // очистить этот список
-    if (this.books.length !== 0) {
-      this.books.length = 0
+    console.log('created')
+    /* this.books.length = 0
+    this.$store.dispatch('clearBooks') */
+  },
+  beforeDestroy () {
+    console.log('beforeDestroy')
+    if (this.infiniteLoadingState) {
+      this.$store.dispatch('clearMyBooks')
     }
   },
   methods: {
@@ -190,7 +190,7 @@ export default {
           })
       }
       console.log('this.currentBook', this.currentBook)
-      /* this.$store.dispatch('newBook', {
+      this.$store.dispatch('newBook', {
         title: this.currentBook.title,
         author: this.currentBook.author,
         description: this.currentBook.description,
@@ -226,7 +226,7 @@ export default {
         .catch(err => {
           this.submitStatus = err.message
           console.log(this.submitStatus)
-        }) */
+        })
     },
     close () {
       this.$vs.notify({
@@ -262,6 +262,7 @@ export default {
       // this.$refs.cropper.setCanvasData({ left: 0, top: 0, height: 220, width: 140 })
     },
     myBooksInfiniteHandler ($state) {
+      this.infiniteLoadingState = $state
       this.$store.dispatch('loadMyBooks')
         .then(() => {
           if (this.isBooksListChanged) {
