@@ -1,5 +1,7 @@
 <template lang="pug">
   div
+    vs-prompt(@accept='acceptAlert' :active.sync='activeRequestPrompt')
+      | Hello!
     vs-sidebar.sidebarx(parent='body' default-index='1' color='primary' spacer='' v-model='filterBarActive')
       .header-sidebar(slot='header')
         h4 Фильтры
@@ -20,7 +22,7 @@
         vs-icon(icon='filter_list' @click='filterBarActive = !filterBarActive')
         span(@click='filterBarActive = !filterBarActive') Фильтр
     vs-row.infinite-wrapper
-      vs-col(:key='index' v-for='book,index in books' vs-type='flex' vs-justify='center' vs-align='center' vs-lg='6' vs-sm='6' vs-xs='12')
+      vs-col(:key='book.id' v-for='book in books' vs-type='flex' vs-justify='center' vs-align='center' vs-lg='6' vs-sm='6' vs-xs='12')
         template
           vs-row(vs-justify='center')
             vs-col(type='flex' vs-justify='center' vs-align='center' vs-w='12')
@@ -38,7 +40,7 @@
                   vs-row(vs-justify='flex-end')
                     vs-button(type='gradient' color='danger' icon='favorite')
                     vs-button(color='primary' icon='turned_in_not')
-                    vs-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='settings')
+                    vs-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='details' @click='showBookDetails(book.id)')
       infinite-loading(@infinite='booksInfiniteHandler' force-use-infinite-wrapper='.infinite-wrapper')
 </template>
 
@@ -66,7 +68,9 @@ export default {
       infiniteLoadingState: null,
       filterBarActive: false,
       suggestedCountries: [],
-      suggestedCities: []
+      suggestedCities: [],
+      activeRequestPrompt: false,
+      selectedBookId: null
     }
   },
   computed: {
@@ -203,6 +207,15 @@ export default {
         this.$store.dispatch('clearBooks')
         this.infiniteLoadingState.reset()
       }
+    },
+    showBookDetails (id) {
+      this.selectedBookId = id
+      this.activeRequestPrompt = true
+    },
+    acceptAlert () {
+      // console.log(this.selectedBookId)
+      this.$store.dispatch('requestBook', {bookId: this.selectedBookId})
+      this.selectedBookId = null
     }
   }
 }

@@ -2,7 +2,8 @@
   div
     vs-prompt(@cancel='cancel' @accept='acceptAlert' @close='close' :is-valid="validTitle && validType && validAuthor && validDesription && validCountry && validCity" :active.sync='activeAddBookPrompt')
       div
-        | Book Description
+        h5(v-if='selectedBookId') Редактирование описания книги
+        h5(v-else) Добавление описания книги
         vs-input(placeholder='title' label='название книги' v-model='currentBook.title')
         vs-select(label='type' v-model='currentBook.type')
           vs-select-item(:key='index' :value='typeOption.value' :text='typeOption.text' v-for='typeOption, index in typeOptions')
@@ -50,7 +51,7 @@
                   vs-row(vs-justify='flex-end')
                     vs-button(type='gradient' color='danger' icon='favorite')
                     vs-button(color='primary' icon='turned_in_not')
-                    vs-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='settings')
+                    vs-button(color='rgb(230,230,230)' color-text='rgb(50,50,50)' icon='edit'  @click='showBookEdit(book.id)')
       infinite-loading(@infinite='myBooksInfiniteHandler' force-use-infinite-wrapper='.infinite-wrapper')
 </template>
 
@@ -89,7 +90,8 @@ export default {
         {text: 'дам почитать', value: 2}
       ],
       isBooksListChanged: false,
-      infiniteLoadingState: null
+      infiniteLoadingState: null,
+      selectedBookId: null
     }
   },
   computed: {
@@ -189,44 +191,83 @@ export default {
             this.submitStatus = err.message
           })
       }
-      console.log('this.currentBook', this.currentBook)
-      this.$store.dispatch('newBook', {
-        title: this.currentBook.title,
-        author: this.currentBook.author,
-        description: this.currentBook.description,
-        country: this.currentBook.country.id,
-        city: this.currentBook.city.id,
-        type: this.currentBook.type,
-        image: this.currentBook.image,
-        active: 1
-      })
-        .then(() => {
-          for (const key in this.currentBook) {
-            if (this.currentBook.hasOwnProperty(key)) {
-              this.currentBook[key] = ''
+      if (!this.selectedBookId) {
+        this.$store.dispatch('newBook', {
+          title: this.currentBook.title,
+          author: this.currentBook.author,
+          description: this.currentBook.description,
+          country: this.currentBook.country.id,
+          city: this.currentBook.city.id,
+          type: this.currentBook.type,
+          image: this.currentBook.image,
+          active: 1
+        })
+          .then(() => {
+            for (const key in this.currentBook) {
+              if (this.currentBook.hasOwnProperty(key)) {
+                this.currentBook[key] = ''
+              }
             }
-          }
-          this.currentBook.country = {
-            id: null,
-            name: ''
-          }
-          this.currentBook.city = {
-            id: null,
-            name: '',
-            countryId: null
-          }
-          this.$vs.notify({
-            color: 'success',
-            title: 'Book Created',
-            text: `Book "${this.currentBook.title}" Created`
+            this.currentBook.country = {
+              id: null,
+              name: ''
+            }
+            this.currentBook.city = {
+              id: null,
+              name: '',
+              countryId: null
+            }
+            this.$vs.notify({
+              color: 'success',
+              title: 'Book Created',
+              text: `Book "${this.currentBook.title}" Created`
+            })
+            this.submitStatus = 'OK'
           })
-          this.submitStatus = 'OK'
-          // console.log(this.submitStatus)
+          .catch(err => {
+            this.submitStatus = err.message
+          })
+      } else {
+        this.$store.dispatch('editBook', {
+          title: this.currentBook.title,
+          author: this.currentBook.author,
+          description: this.currentBook.description,
+          country: this.currentBook.country.id,
+          city: this.currentBook.city.id,
+          type: this.currentBook.type,
+          image: this.currentBook.image,
+          active: 1,
+          id: this.selectedBookId
         })
-        .catch(err => {
-          this.submitStatus = err.message
-          console.log(this.submitStatus)
-        })
+          .then(() => {
+            for (const key in this.currentBook) {
+              if (this.currentBook.hasOwnProperty(key)) {
+                this.currentBook[key] = ''
+              }
+            }
+            this.currentBook.country = {
+              id: null,
+              name: ''
+            }
+            this.currentBook.city = {
+              id: null,
+              name: '',
+              countryId: null
+            }
+            this.$vs.notify({
+              color: 'success',
+              title: 'Book Edited',
+              text: `Book "${this.currentBook.title}" was Edited`
+            })
+            this.submitStatus = 'OK'
+          })
+          .catch(err => {
+            this.submitStatus = err.message
+          })
+          .finally(() => {
+            this.selectedBookId = null
+          })
+      }
     },
     close () {
       this.$vs.notify({
@@ -252,7 +293,6 @@ export default {
     },
     setImage (base64Image) {
       this.currentBook.image = base64Image
-      // console.log(this.currentBook.image)
     },
     startImageResize () {
       console.log('startImageResize')
@@ -333,6 +373,20 @@ export default {
     },
     getCitiesSuggestionValue (suggestion) {
       return suggestion.item.name
+    },
+    showBookEdit (id) {
+      this.selectedBookId = id
+      console.log(id)
+      const editedBook = this.books.find(book => book.id === id)
+      console.log(editedBook)
+      this.currentBook.title = editedBook.title
+      this.currentBook.type = editedBook.type
+      this.currentBook.author = editedBook.author
+      this.currentBook.description = editedBook.description
+      this.currentBook.country.name = editedBook.country
+      this.currentBook.city.name = editedBook.city
+      this.currentBook.image = editedBook.image
+      this.activeAddBookPrompt = true
     }
   }
 }

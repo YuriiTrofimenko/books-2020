@@ -17,6 +17,7 @@ export default ({
         id,
         updatedAt,
         userId,
+        userEmail,
         title,
         author,
         genre,
@@ -32,6 +33,7 @@ export default ({
         id,
         updatedAt,
         userId,
+        userEmail,
         title,
         author,
         genre,
@@ -48,17 +50,21 @@ export default ({
       state[payload.target].push(...payload.books)
     },
     editBook (state, payload) {
-      const oldBook = state.myBooks.find(book => book.id === payload.id)
+      const oldBook = state.myBooks.find(book => book.id === payload.oldId)
       const newBook = {
-        id: oldBook.id,
+        id: payload.id,
+        updatedAt: payload.updatedAt,
+        userId: oldBook.userId,
+        userEmail: oldBook.userEmail,
         title: (payload.title) ? payload.title : oldBook.title,
         author: (payload.author) ? payload.author : oldBook.author,
+        genre: (payload.genre) ? payload.genre : oldBook.genre,
         description: (payload.description) ? payload.description : oldBook.description,
         country: (payload.country) ? payload.country : oldBook.country,
         city: (payload.city) ? payload.city : oldBook.city,
         type: (payload.type) ? payload.type : oldBook.type,
         image: (payload.image) ? payload.image : oldBook.image,
-        active: (payload.active) ? payload.active : oldBook.active
+        active: payload.active
       }
       Object.assign(oldBook, newBook)
     },
@@ -77,7 +83,6 @@ export default ({
     },
     setOldestBookId (state, payload) {
       state.oldestBookId = payload
-      console.log('setOldestBookId-2', state.oldestBookId)
     }
   },
   actions: {
@@ -98,6 +103,7 @@ export default ({
           'image': payload.image,
           'active': payload.active ? 1 : 0,
           'userId': getters.user.id,
+          'userEmail': getters.user.email,
           'id': null,
           'updatedAt': null
         }
@@ -151,9 +157,9 @@ export default ({
           if (response.data) {
             if (response.data.length > 0) {
               commit('setOldestMyBookId', response.data[response.data.length - 1].id)
-              response.data.forEach(myBook => {
+              /* response.data.forEach(myBook => {
                 console.log(myBook)
-              })
+              }) */
               const booksArray = []
               // Get task key (id)
               response.data.forEach(myBook => {
@@ -168,8 +174,9 @@ export default ({
                     myBook.type,
                     myBook.image,
                     myBook.active,
-                    getters.user.id,
-                    '-',
+                    myBook.userId,
+                    myBook.userEmail,
+                    myBook.updatedAt,
                     myBook.id
                   )
                 )
@@ -234,8 +241,9 @@ export default ({
                     book.type,
                     book.image,
                     book.active,
-                    getters.user.id,
-                    '-',
+                    book.userId,
+                    book.userEmail,
+                    book.updatedAt,
                     book.id
                   )
                 )
@@ -260,17 +268,46 @@ export default ({
         throw error
       }
     },
-    async editBook ({commit, getters}, {id, changes}) {
+    async editBook ({commit, getters}, payload) {
       commit('clearError')
       commit('setLoading', true)
       try {
-        // Update data fields
-        await firebase.database().ref(getters.user.id + '/books').child(id).update({
-          ...changes
+        const oldId = payload.id
+        let editedBookData = {
+          'title': payload.title,
+          'author': payload.author,
+          'genre': '',
+          'description': payload.description,
+          'countryId': payload.country,
+          'cityId': payload.city,
+          'typeId': payload.type,
+          'image': payload.image,
+          'active': payload.active ? 1 : 0,
+          'userId': getters.user.id,
+          'userEmail': getters.user.email,
+          'id': payload.id,
+          'updatedAt': null
+        }
+        const url = getters.baseRestApiUrl + '?controller=book&action=edit'
+        const requestData = {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify(editedBookData)
+        }
+        const request = new Request(url, requestData)
+        await fetch(request).then(function (response) {
+          return response.json()
+        }).then(function (response) {
+          if (response.data) {
+            response.data.oldId = oldId
+            // Send mutation
+            commit('editBook', {
+              ...response.data
+            })
+          }
+        }).catch(function (e) {
+          console.log(e)
         })
-        // Send mutation
-        commit('editBook', {id, ...changes})
-
         commit('setLoading', false)
       } catch (error) {
         commit('setLoading', false)
@@ -298,7 +335,33 @@ export default ({
     clearBooks ({commit, getters}) {
       commit('clearBooks')
       commit('setOldestBookId', null)
-      console.log('setOldestBookId-1', getters.oldestBookId)
+    },
+    async requestBook ({commit, getters}, payload) {
+      commit('clearError')
+      commit('setLoading', true)
+      try {
+        const data = Object.assign({userEmail: getters.user.email}, payload)
+        const url = getters.baseRestApiUrl + '?controller=request&action=create'
+        const requestData = {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify(data)
+        }
+        const request = new Request(url, requestData)
+        await fetch(request).then(function (response) {
+          return response.json()
+        }).then(function (response) {
+          // TODO уведомить пользователя, что его запрос отправлен
+          console.log(response)
+        }).catch(function (e) {
+          console.log(e)
+        })
+        commit('setLoading', false)
+      } catch (error) {
+        commit('setLoading', false)
+        commit('setError', error.message)
+        throw error
+      }
     }
   },
   getters: {
