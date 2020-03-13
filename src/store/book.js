@@ -3,14 +3,20 @@ import firebase from 'firebase/app'
 import Book from './BookModel'
 
 export default ({
+  // Состояние - переменные локального хранилища данных (в оперативной памяти)
   state: {
-    // Локальный массив Books
+    // массив книг всех владельцев
     books: [],
+    // массив собственных книг
     myBooks: [],
+    // идентификатор самого последнего скачанного описания книги
     oldestBookId: null,
+    // идентификатор самого последнего скачанного описания собственной книги
     oldestMyBookId: null
   },
+  // Функции изменения состояния
   mutations: {
+    // Создать описание книги
     newBook (
       state,
       {
@@ -29,6 +35,7 @@ export default ({
         active
       }
     ) {
+      // Добавление объекта книги в начало массива
       state.myBooks.unshift({
         id,
         updatedAt,
@@ -45,12 +52,16 @@ export default ({
         active
       })
     },
+    // Добавление массива книг / собственных книг в зависимости от переданной константы
     loadBooks (state, payload) {
       // console.log(...payload.books)
       state[payload.target].push(...payload.books)
     },
+    // Редактирование собственной книги
     editBook (state, payload) {
+      // Находим в локальном состоянии книгу с таким id, который был у нее до редактирования
       const oldBook = state.myBooks.find(book => book.id === payload.oldId)
+      // Заполняем новый объект книги новыми данными
       const newBook = {
         id: payload.id,
         updatedAt: payload.updatedAt,
@@ -66,8 +77,10 @@ export default ({
         image: (payload.image) ? payload.image : oldBook.image,
         active: payload.active
       }
+      // Копируем все данные из нового объекта в старый, находящийся в локальном массиве
       Object.assign(oldBook, newBook)
     },
+    // Удаление книги
     deleteBook (state, payload) {
       const deletedBook = state.myBooks.find(book => book.id === payload.id)
       state.myBooks.splice(state[payload.target].indexOf(deletedBook), 1)
@@ -85,13 +98,14 @@ export default ({
       state.oldestBookId = payload
     }
   },
+  // Действия, которые можно вызывать и из других файлов
   actions: {
-    /* Create a new Book */
-    // With BackEnd
+    // Создание описания книги
     async newBook ({commit, getters}, payload) {
       commit('clearError')
       commit('setLoading', true)
       try {
+        // Готовим объект данных для отправки на сервер
         let newBookData = {
           'title': payload.title,
           'author': payload.author,
@@ -107,6 +121,7 @@ export default ({
           'id': null,
           'updatedAt': null
         }
+        // Адрес добавления книги на сервер
         const url = getters.baseRestApiUrl + '?controller=book&action=create'
         const requestData = {
           method: 'POST',
@@ -115,10 +130,13 @@ export default ({
         }
         const request = new Request(url, requestData)
         await fetch(request).then(function (response) {
+          // Извлечение полезной нагрузки из стандартного объекта-обертки,
+          // который генерируется методом fetch
           return response.json()
         }).then(function (response) {
+          // Если модель ответа содержит поле модели данных
           if (response.data) {
-            // Send mutation
+            // Добавляем модель данных о новой книге в локальное состояние
             commit('newBook', {
               ...response.data
             })
@@ -155,6 +173,8 @@ export default ({
           return response.json()
         }).then(function (response) {
           if (response.data) {
+            // Если очередная порция данных пришла не пустой -
+            // пополняем ею массив локального состояния
             if (response.data.length > 0) {
               commit('setOldestMyBookId', response.data[response.data.length - 1].id)
               /* response.data.forEach(myBook => {
@@ -188,6 +208,8 @@ export default ({
               // Send mutation
               commit('loadBooks', payload)
             } else {
+              // Иначе - зануляем поле локального состояния -
+              // идентификатор последней скачанной модели книги
               commit('setOldestMyBookId', null)
             }
           }
@@ -315,6 +337,8 @@ export default ({
         throw error
       }
     },
+    // Удаление книги - ЕЩЕ НЕ РЕАЛИЗОВАНО,
+    // в теле функции - код из старой версии, в которой все данные хранились в firebase
     async deleteBook ({commit, getters}, id) {
       commit('clearError')
       commit('setLoading', true)
@@ -336,10 +360,12 @@ export default ({
       commit('clearBooks')
       commit('setOldestBookId', null)
     },
+    // Запрос на получение книги
     async requestBook ({commit, getters}, payload) {
       commit('clearError')
       commit('setLoading', true)
       try {
+        // Отправка на сервер данных о пользователь, который просит книгу
         const data = Object.assign({userEmail: getters.user.email}, payload)
         const url = getters.baseRestApiUrl + '?controller=request&action=create'
         const requestData = {

@@ -65,7 +65,9 @@ export default {
   components: { VueCropper, InfiniteLoading, VueAutosuggest },
   data () {
     return {
+      // Флаг отображения окна добавления/редактирования описания книги
       activeAddBookPrompt: false,
+      // Данные описания книги, которое создается или редактируется
       currentBook: {
         title: '',
         type: null,
@@ -83,20 +85,25 @@ export default {
         },
         image: ''
       },
+      // Массивы данных автодополнения для полей ввода
       suggestedCountries: [],
       suggestedCities: [],
       typeOptions: [
         {text: 'дарю', value: 1},
         {text: 'дам почитать', value: 2}
       ],
+      // Флаг факта изменения списка книг после очередного срабатывания догрузки
+      // бесконечным скроллом
       isBooksListChanged: false,
+      // Объект состояния/управления бесконечного скролла
       infiniteLoadingState: null,
+      // ИД описания книги, выбранного для редактирования
       selectedBookId: null
     }
   },
   computed: {
     books () {
-      // источник данных о моих книгах
+      // источник данных о собственных книгах
       return this.$store.getters.myBooks
     },
     countries () {
@@ -142,6 +149,8 @@ export default {
     },
     countries (newVal, oldVal) {
       this.suggestedCountries = newVal
+      // Если после изменения массив стран оказался пуст,
+      // зануляем ИД выбранной страны в модели создаваемой/редактируемой книги
       if (newVal[0].data.length === 0) {
         this.currentBook.country.id = null
       }
@@ -159,6 +168,8 @@ export default {
     this.$store.dispatch('clearBooks') */
   },
   beforeDestroy () {
+    // При уходе с данного раздела очищается список собственных книг
+    // в локальном хранилище
     console.log('beforeDestroy')
     if (this.infiniteLoadingState) {
       this.$store.dispatch('clearMyBooks')
@@ -178,6 +189,7 @@ export default {
             this.submitStatus = err.message
           })
       }
+      // Если названия страны и/или города - новые - создаем их на сервере
       if (!this.currentBook.city.id) {
         await this.$store.dispatch('newCity', {
           name: this.currentBook.city.name,
@@ -191,6 +203,7 @@ export default {
             this.submitStatus = err.message
           })
       }
+      // Создание новой книги
       if (!this.selectedBookId) {
         this.$store.dispatch('newBook', {
           title: this.currentBook.title,
@@ -228,6 +241,7 @@ export default {
             this.submitStatus = err.message
           })
       } else {
+        // Редактирование выбранной книги
         this.$store.dispatch('editBook', {
           title: this.currentBook.title,
           author: this.currentBook.author,
@@ -318,6 +332,7 @@ export default {
           console.log(err)
         })
     },
+    // Выбран пункт из списка предложенных стран
     countryItemSelected (selectedCountry) {
       this.currentBook.country = selectedCountry.item
       this.currentBook.city = {
@@ -330,6 +345,7 @@ export default {
         countryId: this.currentBook.country.id
       })
     },
+    // Изменен текст в поле ввода страны
     async countryInputChange (text) {
       this.currentBook.country.id = null
       this.currentBook.city = {
@@ -353,6 +369,7 @@ export default {
           console.log(err)
         })
     },
+    // Выбор поля модели из списка предложенных стран для установки в поле ввода 
     getCountriesSuggestionValue (suggestion) {
       return suggestion.item.name
     },
@@ -374,6 +391,7 @@ export default {
     getCitiesSuggestionValue (suggestion) {
       return suggestion.item.name
     },
+    // Отображение окна в режиме редактирования описания книги
     showBookEdit (id) {
       this.selectedBookId = id
       console.log(id)

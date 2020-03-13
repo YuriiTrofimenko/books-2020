@@ -1,8 +1,8 @@
 # books-vue
 
-> Demo Vue Project (Books)
+> Demo Vue and Firebase Project (Books)
 
-## Build Setup
+## Build and Deploy Setup
 
 ``` bash
 # install dependencies
@@ -25,6 +25,22 @@ npm run e2e
 
 # run all tests
 npm test
+
+# deploy to Google firebase hosting
+firebase deploy
 ```
+
+## Configuration
+
+1. Firebase Hosting
+src/helpers/firebaseConfig.js
+
+2. Remote API Base URL
+src/store/common.js
+
+## Other part's sources
+
+- Remote API (php + mysql)
+https://github.com/YuriiTrofimenko/books-2020-api.git
 
 For a detailed explanation on how things work, check out the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).

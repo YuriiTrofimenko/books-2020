@@ -53,6 +53,7 @@ export default {
   data () {
     return {
       isBooksListChanged: false,
+      // Модель фильрации по строке поиска и полям боковой панели
       filter: {
         search: '',
         country: {
@@ -202,16 +203,19 @@ export default {
     getCitiesSuggestionValue (suggestion) {
       return suggestion.item.name
     },
+    // Обработка клика по кнопке применения фильтра
     applyFilter () {
       if (this.infiniteLoadingState) {
         this.$store.dispatch('clearBooks')
         this.infiniteLoadingState.reset()
       }
     },
+    // Отображение диалога детализации книги (НЕ РЕАЛИЗОВАНО - ВЫВЕСТИ ВСЕ ДАННЫЕ)
     showBookDetails (id) {
       this.selectedBookId = id
       this.activeRequestPrompt = true
     },
+    // Отправка запроса на книгу владельцу, если кликнута положительная кнопка диалога
     acceptAlert () {
       // console.log(this.selectedBookId)
       this.$store.dispatch('requestBook', {bookId: this.selectedBookId})
